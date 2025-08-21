@@ -1,0 +1,107 @@
+// ===== Blynk Template Info =====
+#define BLYNK_TEMPLATE_ID "TMPL6UvGLcwpb"
+#define BLYNK_TEMPLATE_NAME "Smart Irrigation System 2"
+#define BLYNK_AUTH_TOKEN "Rgp1RWhdsHPQG-YfLri_UkHvyEDdjTQA"
+
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+// ===== WiFi Credentials =====
+char ssid[] = "iPhone";
+char pass[] = "22222222";
+
+// ===== Pin Definitions =====
+#define RELAY_PIN         26   // Relay to control pump
+#define SOIL_SENSOR_PIN   34   // Soil moisture sensor (Analog)
+#define RAIN_SENSOR_PIN   35   // Rain sensor (Digital output)
+
+// ===== Blynk Timer =====
+BlynkTimer timer;
+
+
+// ===== Variables =====
+bool manualPumpOn = false;
+bool rainAlertSent = false;
+int rainStatus = HIGH;  // HIGH = No rain, LOW = Rain detected
+
+// Soil moisture thresholds (adjust based on sensor)
+int dryThreshold = 2000;   // Below this = dry soil
+int wetThreshold = 3000;   // Above this = wet soil
+
+// ===== Manual Pump Control =====
+BLYNK_WRITE(V1) {
+  manualPumpOn = param.asInt(); // 1 = ON, 0 = OFF
+
+  if (manualPumpOn) {
+    digitalWrite(RELAY_PIN, LOW);
+    Serial.println("Pump turned ON manually.");
+  } else {
+    digitalWrite(RELAY_PIN, HIGH);
+    Serial.println("Pump turned OFF manually.");
+  }
+}
+
+// ===== Automatic Control =====
+void autoControlPump() {
+  int soilValue = analogRead(SOIL_SENSOR_PIN);
+  rainStatus = digitalRead(RAIN_SENSOR_PIN);
+
+
+  if (rainStatus == LOW) { 
+      // Rain detected → Pump OFF
+      
+      Serial.println("Rain detected → Pump OFF.");
+      if (!rainAlertSent) {
+        Blynk.logEvent("rain_alert_system", "🌧 Rain detected! Pump stopped.");
+        rainAlertSent = true;
+      }
+    }
+
+  if (!manualPumpOn) { // Only run automatic mode when manual control is off
+    
+      // No rain → Check soil moisture
+      if (soilValue < dryThreshold) {
+        digitalWrite(RELAY_PIN, LOW); // Pump ON
+        Serial.println("Soil is dry → Pump ON.");
+      } 
+      else if (soilValue > wetThreshold) {
+        digitalWrite(RELAY_PIN, HIGH); // Pump OFF
+        Serial.println("Soil is wet → Pump OFF.");
+      }
+    }
+}
+
+
+// ===== Send Sensor Data to Blynk =====
+void readSensors() {
+  int soilValue = analogRead(SOIL_SENSOR_PIN);
+  rainStatus = digitalRead(RAIN_SENSOR_PIN);
+
+  Blynk.virtualWrite(V2, soilValue);
+  Blynk.virtualWrite(V3, rainStatus == LOW ? 1 : 0);
+
+  Serial.print("Soil Moisture: ");
+  Serial.print(soilValue);
+  Serial.print(" | Rain: ");
+  Serial.print(rainStatus == LOW ? "Raining" : "No Rain");
+  Serial.print(" | Pump: ");
+  Serial.println(digitalRead(RELAY_PIN) == LOW ? "ON" : "OFF");
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, HIGH);
+  pinMode(RAIN_SENSOR_PIN, INPUT_PULLUP);
+
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+  timer.setInterval(5000L, readSensors);   // Send readings to Blynk
+  timer.setInterval(3000L, autoControlPump); // Check auto control every 3 sec
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}
