@@ -28,6 +28,26 @@ The project was implemented using **ESP32**, different sensors, a water pump, an
 5. ESP32 connected to WiFi → Blynk IoT app
 
 ---
+## ESP32 Pin Configuration
+
+| Component                   | Pin on Component         | ESP32 Pin Connection      |
+| --------------------------- | ------------------------ | ------------------------- |
+| **Soil Moisture Sensor**    | AO (Analog Out)          | GPIO 34 (Analog Input)    |
+|                             | VCC                      | 3.3V                      |
+|                             | GND                      | GND                       |
+| **Rain Sensor**             | DO (Digital Out)         | GPIO 35 (Digital Input)   |
+|                             | VCC                      | 3.3V                      |
+|                             | GND                      | GND                       |
+| **Relay Module**            | IN (Signal)              | GPIO 26 (Digital Output)  |
+|                             | VCC                      | 5V                        |
+|                             | GND                      | GND                       |
+| **Water Pump**              | Positive (+) → Relay COM | External Power Supply (+) |
+|                             | Negative (–)             | External Power Supply (–) |
+|                             | Relay NO → Pump (+)      | Pump (+)                  |
+| **DHT22 Sensor** (Optional) | Data                     | GPIO 4 (Digital Input)    |
+|                             | VCC                      | 3.3V                      |
+|                             | GND                      | GND                       |
+
 
 ## 💻 Software & Libraries
 
